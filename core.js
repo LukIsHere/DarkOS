@@ -19,7 +19,9 @@ var lastl = "";
 var todo = 0;
 var done = 0;
 var mbtnDown = false;
-var debug = false
+var debug = false;
+var lastkey = "";
+var focusw = 0;
 function style(s){
     switch (s){
         case "b":
@@ -227,11 +229,31 @@ function start(){
 
 }
 function click(){
-    windows.forEach((w)=>{
-        if(w.f){
-            if(cx>=w.x&&cx<=w.w+w.x+20&&cy>=w.y&&cy<=w.h+w.y+30)w.frameclick()
+    function chceckb(x,y,w,h){
+        return (cx>=x&&cx<=x+w&&cy>=y&&cy<=y+h);
+    }
+    //window click
+    windows.forEach((w,i)=>{
+        try{
+            
+            if(w.f){
+                if(chceckb(w.x+10,w.y+30,w.w,w.h)){
+                    w.touch(cx+w.x+10,cy+w.y+30);
+                    focusw = i;
+                }
+                if(chceckb(w.x,w.y,w.w+20,30)){
+                    w.frameclick()
+                    if(chceckb(w.x+w.w-10,w.y+5,20,20))windows[i]=undefined;
+                    return;
+                }
+            }
+        }catch{
+
         }
     })
+    //system click
+    if(chceckb(0,1440,160,160))windows.push(new win(1000,1000,true,"nazwa",function(){},function(){},function(){},function(){},function(){}));
+
 }
 
 var loading = [["w","b","b"],["w","b","w"],["w","w","w"]];
@@ -250,8 +272,13 @@ function frame(){
         break;
         case "desktop":
             desktop();
+            ctx.drawImage(asset["darkOS"],0,1440)
             windows.forEach((w)=>{
-                w.root();
+                try{
+                    w.root();
+                }catch{
+
+                }
             })
             
         break;
@@ -263,13 +290,14 @@ function frame(){
     if(debug){
         printLine("mysz "+cx+":"+cy+" "+mbtnDown,0,0,w,10)
         printLine("okno  "+screenw.width+":"+screenw.height,0,12,w,10)
-        printLine("frame click "+windows[0].ClickOnFrame,0,24,w,10)
+        printLine("ostatni klawisz "+lastkey,0,24,w,10)
         
     }
     
 }
 class win{
-    constructor(h,w,frame,name,touch,tick,framef){
+    constructor(h,w,frame,name,touch,key,tick,framef,off,init=function(){}){
+        this.bg = "white";
         this.x = 0;
         this.y = 0;
         this.h = h;
@@ -283,14 +311,28 @@ class win{
         this.data = {
 
         }
+        this.close = false;
+        this.off = off;
+        this.key = key;
+        this.init = init;
+        this.init()
+    }
+    init(){
+
     }
     touch(x,y){
+
+    }
+    key(key){
 
     }
     tick(){
 
     }
     frame(){
+
+    }
+    off(){
 
     }
     frameclick(){
@@ -301,37 +343,72 @@ class win{
         this.ClickOnFrame = true
     }
     root(){
-        if(this.ClickOnFrame){
-            this.x = cx-this.omx+this.ox;
-            this.y = cy-this.omy+this.oy;
+        try{
+            if(this.ClickOnFrame){
+                this.x = cx-this.omx+this.ox;
+                this.y = cy-this.omy+this.oy;
+            }
+            if(!mbtnDown&&this.ClickOnFrame){
+                this.ClickOnFrame=false
+            }
+            //draw frame
+            if(this.f){
+                //up 30 rest 10
+                style("gray");
+                ctx.fillRect(this.x,this.y,this.w+20,this.h+40)
+                style(this.bg);
+                ctx.fillRect(this.x+10,this.y+30,this.w,this.h)
+                printLine(this.name,this.x+5,this.y+5,"white",20)
+                letter("x",this.y+5,this.x+this.w-10,"w",20,20)
+                
+            }
+            
+            this.tick()
+            this.frame()
+        }catch(wut){
+            console.log(wut);
         }
-        if(!mbtnDown&&this.ClickOnFrame){
-            this.ClickOnFrame=false
+        
+    }
+    draw(obj,xs,ys,dx,dy,size){
+        var txs = xs;
+        var tys = ys;
+        var tdx = dx;
+        var tdy = dy;
+        if(txs<0){
+            tdx +=txs;
+            txs=0;
         }
-        //draw frame
-        if(this.f){
-            //up 30 rest 10
-            style("gray");
-            ctx.fillRect(this.x,this.y,this.w+20,this.h+40)
-            style("white");
-            ctx.fillRect(this.x+10,this.y+30,this.w,this.h)
-            printLine(this.name,this.x+5,this.y+5,"white",20)
-            letter("x",this.y+5,this.x+this.w-10,"w",20,20)
+        if(tys<0){
+            tyx +=tys;
+            tys=0;
         }
-        this.tick()
-        this.frame()
+        if(txs>this.w){
+            txs=this.w;
+            tdx=0
+        }
+        if(tys>this.w){
+            tys=this.h;
+            tdy=0
+        }
+        if(txs+tdx>this.w){
+            tdx=this.w-txs
+        }
+        if(tys+tdy>this.h){
+            tdy=this.h-tys
+        }
+        draw(obj,tys+this.y+30,txs+this.x+10,tdx,tdy,size);
     }
-    draw(){
-
+    letter(l,xs,ys,c="w",dx=100,dy=100){
+        
+        letter(l,ys+this.y+30,xs+this.x+10,c,dx,dy)
+        console.log("gut")
     }
-    letter(){
-
+    drawSprite(img,x,y,w,h){
+        ctx.drawImage(img,x,y,w,h);
     }
-    printLine(){
-
-    }
-    drawSprite(){
-
+    kill(){
+        this.close = true
     }
 }
 function  tick(){
@@ -406,7 +483,7 @@ ass.forEach(a=>{
         asset[a] = img;
     }
 })
-windows.push(new win(200,200,true,"nazwa",function(){},function(){},function(){}))
+
 setInterval(frame,33.4)
 setInterval(tick,60)
 setInterval(slowtick,1000)
@@ -415,10 +492,11 @@ setInterval(()=>{
 },100)
 setTimeout(()=>{
     scr = "desktop"
+    test();
     setTimeout(()=>{
         //scr = "error"
     },second*20)
-},second*5)
+},second*0.5)
 //fake wczytywanie
 todo++
 setTimeout(() => {
@@ -462,6 +540,12 @@ screenw.addEventListener("mouseup",(e)=>{
     cx = pos.x;
     cy = pos.y;
     mbtnDown = false;
+})
+document.addEventListener("keydown",(ev)=>{
+    lastkey = ev.key
+    windows[focusw].key(ev.key);
+    if(ev.key.toLowerCase()=="t")test()
+    ev.preventDefault();
 })
 //export
 //later
