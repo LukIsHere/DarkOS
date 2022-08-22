@@ -1,10 +1,15 @@
-var screen = document.getElementById("s")
-var ctx = screen.getContext("2d");
+
+
+var screenw = document.getElementById("s")
+var ctx = screenw.getContext("2d");
 var w = "w";
 var t = "t";//przezroczysty
 var b = "b";
 var g = "g";
+var cx=0;
+var cy=0
 var scr = "loading";
+var windows =  [];
 var bSpace = true;
 var second = 1000;
 var minute = 60*second;
@@ -13,6 +18,8 @@ var asset = [];
 var lastl = "";
 var todo = 0;
 var done = 0;
+var mbtnDown = false;
+var debug = false
 function style(s){
     switch (s){
         case "b":
@@ -125,6 +132,9 @@ function letter(l,xs,ys,c="w",dx=100,dy=100){
         case "z":
             draw([[c,c,c,c,c],[t,t,t,c,t],[t,t,c,t,t],[t,c,t,t,t],[c,c,c,c,c]], xs, ys, dx, dy ,5)
         break;
+        case "x":
+            draw([[c,t,t,t,c],[t,c,t,c,t],[t,t,c,t,t],[t,c,t,c,t],[c,t,t,t,c]], xs, ys, dx, dy ,5)
+        break;
         case ".":
             draw([[t,t,t,t,t],[t,t,t,t,t],[t,t,t,t,t],[t,t,t,t,t],[t,t,c,t,t]], xs, ys, dx, dy ,5)
         break;
@@ -201,7 +211,7 @@ function printLineCenter(text,ys,c="w",fsize = 50){
 }
 function fill(col){
     style(col);
-    ctx.fillRect(0,0,screen.width,screen.height);
+    ctx.fillRect(0,0,screenw.width,screenw.height);
 }
 function drawBar(proc,wi,hi,y,c=w){
     style("w");
@@ -216,7 +226,15 @@ function desktop(){
 function start(){
 
 }
-var loading;
+function click(){
+    windows.forEach((w)=>{
+        if(w.f){
+            if(cx>=w.x&&cx<=w.w+w.x+20&&cy>=w.y&&cy<=w.h+w.y+30)w.frameclick()
+        }
+    })
+}
+
+var loading = [["w","b","b"],["w","b","w"],["w","w","w"]];
 var loadingb = "hi";
 var lstate = 0;
 function frame(){
@@ -232,6 +250,9 @@ function frame(){
         break;
         case "desktop":
             desktop();
+            windows.forEach((w)=>{
+                w.root();
+            })
             
         break;
         default:
@@ -239,7 +260,79 @@ function frame(){
             printLineCenter("error :(",400,"w",100)
 
     }
+    if(debug){
+        printLine("mysz "+cx+":"+cy+" "+mbtnDown,0,0,w,10)
+        printLine("okno  "+screenw.width+":"+screenw.height,0,12,w,10)
+        printLine("frame click "+windows[0].ClickOnFrame,0,24,w,10)
+        
+    }
     
+}
+class win{
+    constructor(h,w,frame,name,touch,tick,framef){
+        this.x = 0;
+        this.y = 0;
+        this.h = h;
+        this.w = w;
+        this.f = frame;
+        this.tick = tick;
+        this.touch = touch;
+        this.frame = framef;
+        this.name = name
+        this.ClickOnFrame = false;
+        this.data = {
+
+        }
+    }
+    touch(x,y){
+
+    }
+    tick(){
+
+    }
+    frame(){
+
+    }
+    frameclick(){
+        this.omx = cx
+        this.omy = cy
+        this.ox = this.x
+        this.oy = this.y
+        this.ClickOnFrame = true
+    }
+    root(){
+        if(this.ClickOnFrame){
+            this.x = cx-this.omx+this.ox;
+            this.y = cy-this.omy+this.oy;
+        }
+        if(!mbtnDown&&this.ClickOnFrame){
+            this.ClickOnFrame=false
+        }
+        //draw frame
+        if(this.f){
+            //up 30 rest 10
+            style("gray");
+            ctx.fillRect(this.x,this.y,this.w+20,this.h+40)
+            style("white");
+            ctx.fillRect(this.x+10,this.y+30,this.w,this.h)
+            printLine(this.name,this.x+5,this.y+5,"white",20)
+            letter("x",this.y+5,this.x+this.w-10,"w",20,20)
+        }
+        this.tick()
+        this.frame()
+    }
+    draw(){
+
+    }
+    letter(){
+
+    }
+    printLine(){
+
+    }
+    drawSprite(){
+
+    }
 }
 function  tick(){
     switch (lstate){
@@ -313,6 +406,7 @@ ass.forEach(a=>{
         asset[a] = img;
     }
 })
+windows.push(new win(200,200,true,"nazwa",function(){},function(){},function(){}))
 setInterval(frame,33.4)
 setInterval(tick,60)
 setInterval(slowtick,1000)
@@ -341,3 +435,33 @@ setTimeout(() => {
     done++
     lastl = "sys.reg"
 }, second*4);
+//touch
+function forCanv(x,y){
+    const rect = screenw.getBoundingClientRect();
+    const elementRelativeX = x - rect.left;
+    const elementRelativeY = y - rect.top;
+    const canvasRelativeX = elementRelativeX * screenw.width / rect.width;
+    const canvasRelativeY = elementRelativeY * screenw.height / rect.height;
+    
+    return {x:Math.round(canvasRelativeX),y:Math.round(canvasRelativeY)}
+}
+screenw.addEventListener("mousedown",(e)=>{
+    var pos = forCanv(e.clientX,e.clientY);
+    cx = pos.x;
+    cy = pos.y;
+    mbtnDown = true;
+    click(pos.x,pos.y)
+})
+screenw.addEventListener("mousemove",(e)=>{
+    var pos = forCanv(e.clientX,e.clientY);
+    cx = pos.x;
+    cy = pos.y;
+})
+screenw.addEventListener("mouseup",(e)=>{
+    var pos = forCanv(e.clientX,e.clientY);
+    cx = pos.x;
+    cy = pos.y;
+    mbtnDown = false;
+})
+//export
+//later
