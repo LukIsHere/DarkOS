@@ -1,3 +1,3 @@
 # DarkOS
-i like this
+try it out
 https://dark-os.duckdns.org
